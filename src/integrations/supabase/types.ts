@@ -14,7 +14,100 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      answers: {
+        Row: {
+          answer: string
+          created_at: string
+          id: string
+          question_index: number
+          room_id: string
+          slot: number
+        }
+        Insert: {
+          answer: string
+          created_at?: string
+          id?: string
+          question_index: number
+          room_id: string
+          slot: number
+        }
+        Update: {
+          answer?: string
+          created_at?: string
+          id?: string
+          question_index?: number
+          room_id?: string
+          slot?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "answers_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      players: {
+        Row: {
+          client_id: string
+          id: string
+          joined_at: string
+          name: string
+          room_id: string
+          slot: number
+        }
+        Insert: {
+          client_id: string
+          id?: string
+          joined_at?: string
+          name: string
+          room_id: string
+          slot: number
+        }
+        Update: {
+          client_id?: string
+          id?: string
+          joined_at?: string
+          name?: string
+          room_id?: string
+          slot?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "players_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rooms: {
+        Row: {
+          code: string
+          created_at: string
+          current_index: number
+          id: string
+          status: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          current_index?: number
+          id?: string
+          status?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          current_index?: number
+          id?: string
+          status?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
