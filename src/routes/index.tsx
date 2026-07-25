@@ -24,7 +24,6 @@ function Landing() {
   const [error, setError] = useState<string | null>(null);
 
   async function createRoom() {
-    if (!name.trim()) { setError("Please tell us your name first"); return; }
     setLoading(true); setError(null);
     try {
       const code = generateRoomCode();
@@ -36,7 +35,7 @@ function Landing() {
       if (rErr || !room) throw rErr ?? new Error("Failed");
       const { error: pErr } = await supabase.from("players").insert({
         room_id: room.id,
-        name: name.trim().slice(0, 30),
+        name: (name.trim() || "You").slice(0, 30),
         slot: 1,
         client_id: getClientId(),
       });
@@ -49,7 +48,6 @@ function Landing() {
   }
 
   async function joinRoom() {
-    if (!name.trim()) { setError("Please tell us your name first"); return; }
     const code = joinCode.trim().toUpperCase();
     if (!code) { setError("Enter a room code"); return; }
     setLoading(true); setError(null);
@@ -67,7 +65,7 @@ function Landing() {
         const nextSlot = existing?.find(p => p.slot === 1) ? 2 : 1;
         const { error: pErr } = await supabase.from("players").insert({
           room_id: room.id,
-          name: name.trim().slice(0, 30),
+          name: (name.trim() || "Partner").slice(0, 30),
           slot: nextSlot,
           client_id: clientId,
         });
@@ -103,7 +101,7 @@ function Landing() {
         </p>
 
         <div className="mt-12 w-full max-w-md rounded-3xl p-8 glass-card" style={{ animation: "fade-in 1.1s ease" }}>
-          <label className="text-xs uppercase tracking-widest text-muted-foreground">Your name</label>
+          <label className="text-xs uppercase tracking-widest text-muted-foreground">Your name (optional)</label>
           <input
             value={name}
             onChange={e => setName(e.target.value)}
