@@ -63,25 +63,33 @@
 
 :root {
   --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.129 0.042 264.695);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.129 0.042 264.695);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.129 0.042 264.695);
-  --primary: oklch(0.208 0.042 265.755);
-  --primary-foreground: oklch(0.984 0.003 247.858);
-  --secondary: oklch(0.968 0.007 247.896);
-  --secondary-foreground: oklch(0.208 0.042 265.755);
-  --muted: oklch(0.968 0.007 247.896);
-  --muted-foreground: oklch(0.554 0.046 257.417);
-  --accent: oklch(0.968 0.007 247.896);
-  --accent-foreground: oklch(0.208 0.042 265.755);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.984 0.003 247.858);
-  --border: oklch(0.929 0.013 255.508);
-  --input: oklch(0.929 0.013 255.508);
-  --ring: oklch(0.704 0.04 256.788);
+  /* Romantic dreamy palette: blush, cream, deep rose, candlelight */
+  --background: oklch(0.977 0.014 40);
+  --foreground: oklch(0.28 0.06 20);
+  --card: oklch(0.995 0.008 40 / 0.72);
+  --card-foreground: oklch(0.28 0.06 20);
+  --popover: oklch(0.995 0.008 40);
+  --popover-foreground: oklch(0.28 0.06 20);
+  --primary: oklch(0.55 0.18 15);
+  --primary-foreground: oklch(0.985 0.01 40);
+  --secondary: oklch(0.93 0.04 30);
+  --secondary-foreground: oklch(0.32 0.08 20);
+  --muted: oklch(0.94 0.025 40);
+  --muted-foreground: oklch(0.48 0.06 20);
+  --accent: oklch(0.82 0.12 25);
+  --accent-foreground: oklch(0.98 0.01 40);
+  --destructive: oklch(0.55 0.22 25);
+  --destructive-foreground: oklch(0.985 0.01 40);
+  --border: oklch(0.87 0.04 25 / 0.5);
+  --input: oklch(0.9 0.03 30);
+  --ring: oklch(0.65 0.15 15);
+  /* Custom romance tokens */
+  --blush: oklch(0.92 0.05 20);
+  --rose: oklch(0.62 0.2 15);
+  --candle: oklch(0.85 0.13 70);
+  --cream: oklch(0.97 0.02 60);
+  --font-serif: "Cormorant Garamond", "Playfair Display", Georgia, serif;
+  --font-sans: "Karla", ui-sans-serif, system-ui, sans-serif;
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
@@ -138,7 +146,51 @@
   }
 
   body {
-    background-color: var(--color-background);
+    background: radial-gradient(ellipse at top, oklch(0.95 0.04 25) 0%, oklch(0.977 0.014 40) 50%, oklch(0.93 0.05 15) 100%);
     color: var(--color-foreground);
+    font-family: var(--font-sans);
+    min-height: 100vh;
+  }
+  h1, h2, h3, .font-serif {
+    font-family: var(--font-serif);
+    letter-spacing: -0.01em;
+  }
+}
+
+@utility glass-card {
+  background: color-mix(in oklch, white 65%, transparent);
+  backdrop-filter: blur(20px) saturate(1.2);
+  border: 1px solid color-mix(in oklch, var(--rose) 20%, transparent);
+  box-shadow: 0 20px 60px -20px color-mix(in oklch, var(--rose) 30%, transparent);
+}
+
+@utility btn-romance {
+  background: linear-gradient(135deg, var(--rose), oklch(0.55 0.2 8));
+  color: var(--primary-foreground);
+  padding: 0.85rem 2rem;
+  border-radius: 999px;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  transition: all 0.3s ease;
+  box-shadow: 0 10px 30px -10px color-mix(in oklch, var(--rose) 60%, transparent);
+}
+@utility btn-romance-hover {
+  transform: translateY(-2px);
+  box-shadow: 0 15px 40px -10px color-mix(in oklch, var(--rose) 70%, transparent);
+}
+
+@keyframes float-up {
+  0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+  10% { opacity: 0.8; }
+  90% { opacity: 0.6; }
+  100% { transform: translateY(-10vh) rotate(360deg); opacity: 0; }
+}
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes pulse-heart {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.15); }
   }
 }
