@@ -101,7 +101,7 @@ function Landing() {
         </p>
 
         <div className="mt-12 w-full max-w-md rounded-3xl p-8 glass-card" style={{ animation: "fade-in 1.1s ease" }}>
-          <label className="text-xs uppercase tracking-widest text-muted-foreground">Your name</label>
+          <label className="text-xs uppercase tracking-widest text-muted-foreground">Your name (optional)</label>
           <input
             value={name}
             onChange={e => setName(e.target.value)}
