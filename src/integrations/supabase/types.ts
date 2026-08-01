@@ -90,6 +90,7 @@ export type Database = {
           created_at: string
           current_index: number
           id: string
+          mode: string
           status: string
         }
         Insert: {
@@ -97,6 +98,7 @@ export type Database = {
           created_at?: string
           current_index?: number
           id?: string
+          mode?: string
           status?: string
         }
         Update: {
@@ -104,6 +106,7 @@ export type Database = {
           created_at?: string
           current_index?: number
           id?: string
+          mode?: string
           status?: string
         }
         Relationships: []
