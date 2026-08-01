@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate, useParams } from "@tanstack/react-router"
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getClientId } from "@/lib/client-id";
-import { DATE_QUESTIONS } from "@/lib/questions";
+import { getGame, GAME_LIST, type GameMode } from "@/lib/games";
 import { FloatingPetals } from "@/components/FloatingPetals";
 import { Heart, Copy, Check, ChevronRight, Sparkles } from "lucide-react";
 
@@ -16,7 +16,7 @@ export const Route = createFileRoute("/room/$code")({
   }),
 });
 
-type Room = { id: string; code: string; current_index: number; status: string };
+type Room = { id: string; code: string; current_index: number; status: string; mode: string };
 type Player = { id: string; room_id: string; name: string; slot: number; client_id: string };
 type Answer = { id: string; room_id: string; question_index: number; slot: number; answer: string };
 
@@ -101,24 +101,31 @@ function RoomPage() {
     }} />;
   }
 
+  const game = getGame(room.mode);
+  const prompts = game.prompts;
   const qIndex = room.current_index;
-  const question = DATE_QUESTIONS[qIndex % DATE_QUESTIONS.length];
+  const question = prompts[qIndex % prompts.length];
   const myAnswer = answers.find(a => a.question_index === qIndex && a.slot === me.slot);
   const partnerAnswer = partner ? answers.find(a => a.question_index === qIndex && a.slot === partner.slot) : undefined;
   const bothAnswered = !!myAnswer && !!partnerAnswer;
-  const finished = qIndex >= DATE_QUESTIONS.length;
+  const finished = qIndex >= prompts.length;
 
-  async function submit() {
-    if (!draft.trim() || !me) return;
+  async function submitValue(value: string) {
+    if (!value.trim() || !me) return;
     setSubmitting(true);
     const { error } = await supabase.from("answers").upsert({
       room_id: room!.id,
       question_index: qIndex,
       slot: me.slot,
-      answer: draft.trim(),
+      answer: value.trim(),
     }, { onConflict: "room_id,question_index,slot" });
     setSubmitting(false);
     if (!error) setDraft("");
+  }
+
+  async function switchGame(mode: GameMode) {
+    await supabase.from("answers").delete().eq("room_id", room!.id);
+    await supabase.from("rooms").update({ current_index: 0, mode }).eq("id", room!.id);
   }
 
   async function nextQuestion() {
@@ -126,7 +133,7 @@ function RoomPage() {
   }
 
   if (finished) {
-    return <FinishedScreen me={me} partner={partner} answers={answers} onRestart={async () => {
+    return <FinishedScreen me={me} partner={partner} answers={answers} onSwitch={switchGame} onRestart={async () => {
       await supabase.from("answers").delete().eq("room_id", room!.id);
       await supabase.from("rooms").update({ current_index: 0 }).eq("id", room!.id);
     }} onExit={() => navigate({ to: "/" })} />;
@@ -142,18 +149,19 @@ function RoomPage() {
           Loveline
         </div>
         <div className="flex items-center gap-3 text-sm">
-          <span className="text-muted-foreground">You & {partner?.name}</span>
+          <span className="rounded-full border border-border bg-white/50 px-3 py-1 text-xs">{game.emoji} {game.title}</span>
+          <span className="text-muted-foreground">You &amp; {partner?.name}</span>
         </div>
       </header>
 
       <main className="relative z-10 mx-auto max-w-3xl px-6 pb-24">
         <div className="mb-8 flex items-center justify-between text-xs uppercase tracking-widest text-muted-foreground">
-          <span>Question {qIndex + 1} of {DATE_QUESTIONS.length}</span>
+          <span>Question {qIndex + 1} of {prompts.length}</span>
           <span className="rounded-full border border-border bg-white/50 px-3 py-1 font-serif italic normal-case">{question.category}</span>
         </div>
         <div className="h-1 w-full overflow-hidden rounded-full bg-white/40">
           <div className="h-full bg-gradient-to-r from-[oklch(0.82_0.12_25)] to-[oklch(0.62_0.2_15)] transition-all"
-               style={{ width: `${((qIndex + 1) / DATE_QUESTIONS.length) * 100}%` }} />
+               style={{ width: `${((qIndex + 1) / prompts.length) * 100}%` }} />
         </div>
 
         <div key={qIndex} className="mt-10 rounded-3xl p-10 glass-card" style={{ animation: "fade-in 0.6s ease" }}>
@@ -166,11 +174,26 @@ function RoomPage() {
           <div className="mt-8 rounded-3xl p-8 glass-card">
             {!myAnswer ? (
               <>
-                <label className="text-xs uppercase tracking-widest text-muted-foreground">Your answer, {me.name}</label>
+                <label className="text-xs uppercase tracking-widest text-muted-foreground">{game.inputLabel}, {me.name}</label>
+                {question.options ? (
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                    {question.options.map((opt) => (
+                      <button
+                        key={opt}
+                        onClick={() => submitValue(opt)}
+                        disabled={submitting}
+                        className="rounded-2xl border border-border bg-white/70 px-5 py-6 font-serif text-xl italic transition hover:border-[oklch(0.62_0.2_15)] hover:bg-white disabled:opacity-60"
+                      >
+                        {opt}
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                <>
                 <textarea
                   value={draft}
                   onChange={e => setDraft(e.target.value)}
-                  placeholder="Take your time. Say it honestly…"
+                  placeholder={game.placeholder}
                   rows={4}
                   className="mt-3 w-full resize-none rounded-2xl border border-border bg-white/70 px-4 py-3 text-lg font-serif italic outline-none focus:border-[oklch(0.62_0.2_15)] focus:ring-2 focus:ring-[oklch(0.82_0.12_25)]/40"
                   maxLength={500}
@@ -178,13 +201,15 @@ function RoomPage() {
                 <div className="mt-4 flex items-center justify-between">
                   <span className="text-xs text-muted-foreground">{draft.length}/500</span>
                   <button
-                    onClick={submit}
+                    onClick={() => submitValue(draft)}
                     disabled={submitting || !draft.trim()}
                     className="btn-romance hover:btn-romance-hover disabled:opacity-50 flex items-center gap-2"
                   >
                     <Heart className="h-4 w-4" fill="currentColor" /> Send with love
                   </button>
                 </div>
+                </>
+                )}
               </>
             ) : (
               <div className="text-center">
@@ -251,8 +276,8 @@ function WaitingRoom({ code, me, copied, onCopy }: { code: string; me: Player; c
   );
 }
 
-function FinishedScreen({ me, partner, answers, onRestart, onExit }:
-  { me: Player; partner?: Player; answers: Answer[]; onRestart: () => void; onExit: () => void }) {
+function FinishedScreen({ me, partner, answers, onRestart, onExit, onSwitch }:
+  { me: Player; partner?: Player; answers: Answer[]; onRestart: () => void; onExit: () => void; onSwitch: (mode: GameMode) => void }) {
   const count = answers.filter(a => a.slot === me.slot).length;
   return (
     <div className="relative min-h-screen w-full overflow-hidden">
@@ -266,6 +291,18 @@ function FinishedScreen({ me, partner, answers, onRestart, onExit }:
         <div className="mt-10 flex gap-3">
           <button onClick={onRestart} className="btn-romance hover:btn-romance-hover">Play again</button>
           <button onClick={onExit} className="rounded-full border border-border bg-white/60 px-6 py-3 text-sm">Exit</button>
+        </div>
+        <div className="mt-12 w-full">
+          <p className="text-xs uppercase tracking-widest text-muted-foreground">Try another game</p>
+          <div className="mt-4 grid grid-cols-2 gap-2">
+            {GAME_LIST.map((g) => (
+              <button key={g.id} onClick={() => onSwitch(g.id)}
+                className="rounded-2xl border border-border bg-white/60 px-3 py-3 text-left transition hover:bg-white">
+                <div className="text-lg leading-none">{g.emoji}</div>
+                <div className="mt-2 font-serif text-base leading-tight">{g.title}</div>
+              </button>
+            ))}
+          </div>
         </div>
       </main>
     </div>

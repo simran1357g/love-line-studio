@@ -5,6 +5,7 @@ import { getClientId, generateRoomCode } from "@/lib/client-id";
 import { FloatingPetals } from "@/components/FloatingPetals";
 import heroImg from "@/assets/hero-romance.jpg";
 import { Heart, Sparkles } from "lucide-react";
+import { GAME_LIST, type GameMode } from "@/lib/games";
 
 export const Route = createFileRoute("/")({
   component: Landing,
@@ -20,6 +21,7 @@ function Landing() {
   const navigate = useNavigate();
   const [name, setName] = useState("");
   const [joinCode, setJoinCode] = useState("");
+  const [mode, setMode] = useState<GameMode>("questions");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -29,7 +31,7 @@ function Landing() {
       const code = generateRoomCode();
       const { data: room, error: rErr } = await supabase
         .from("rooms")
-        .insert({ code, status: "waiting", current_index: 0 })
+        .insert({ code, status: "waiting", current_index: 0, mode })
         .select()
         .single();
       if (rErr || !room) throw rErr ?? new Error("Failed");
@@ -97,10 +99,32 @@ function Landing() {
           Loveline
         </h1>
         <p className="mt-4 max-w-lg text-center text-lg leading-relaxed text-muted-foreground font-serif italic">
-          Share a room. Answer romantic questions together. Discover each other, one heartbeat at a time.
+          Four little games. One shared room. Discover each other, one heartbeat at a time.
         </p>
 
         <div className="mt-12 w-full max-w-md rounded-3xl p-8 glass-card" style={{ animation: "fade-in 1.1s ease" }}>
+          <div className="mb-6">
+            <label className="text-xs uppercase tracking-widest text-muted-foreground">Choose your game</label>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              {GAME_LIST.map((g) => (
+                <button
+                  key={g.id}
+                  type="button"
+                  onClick={() => setMode(g.id)}
+                  className={`rounded-2xl border px-3 py-3 text-left transition ${
+                    mode === g.id
+                      ? "border-[oklch(0.62_0.2_15)] bg-white/85 shadow-sm"
+                      : "border-border bg-white/50 hover:bg-white/70"
+                  }`}
+                >
+                  <div className="text-lg leading-none">{g.emoji}</div>
+                  <div className="mt-2 font-serif text-base leading-tight text-foreground">{g.title}</div>
+                  <div className="mt-1 text-[11px] leading-snug text-muted-foreground">{g.tagline}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+
           <label className="text-xs uppercase tracking-widest text-muted-foreground">Your name (optional)</label>
           <input
             value={name}
