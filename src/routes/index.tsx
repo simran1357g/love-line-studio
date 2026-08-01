@@ -5,6 +5,7 @@ import { getClientId, generateRoomCode } from "@/lib/client-id";
 import { FloatingPetals } from "@/components/FloatingPetals";
 import heroImg from "@/assets/hero-romance.jpg";
 import { Heart, Sparkles } from "lucide-react";
+import { GAME_LIST, type GameMode } from "@/lib/games";
 
 export const Route = createFileRoute("/")({
   component: Landing,
@@ -20,6 +21,7 @@ function Landing() {
   const navigate = useNavigate();
   const [name, setName] = useState("");
   const [joinCode, setJoinCode] = useState("");
+  const [mode, setMode] = useState<GameMode>("questions");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -29,7 +31,7 @@ function Landing() {
       const code = generateRoomCode();
       const { data: room, error: rErr } = await supabase
         .from("rooms")
-        .insert({ code, status: "waiting", current_index: 0 })
+        .insert({ code, status: "waiting", current_index: 0, mode })
         .select()
         .single();
       if (rErr || !room) throw rErr ?? new Error("Failed");
