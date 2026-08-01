@@ -276,8 +276,8 @@ function WaitingRoom({ code, me, copied, onCopy }: { code: string; me: Player; c
   );
 }
 
-function FinishedScreen({ me, partner, answers, onRestart, onExit }:
-  { me: Player; partner?: Player; answers: Answer[]; onRestart: () => void; onExit: () => void }) {
+function FinishedScreen({ me, partner, answers, onRestart, onExit, onSwitch }:
+  { me: Player; partner?: Player; answers: Answer[]; onRestart: () => void; onExit: () => void; onSwitch: (mode: GameMode) => void }) {
   const count = answers.filter(a => a.slot === me.slot).length;
   return (
     <div className="relative min-h-screen w-full overflow-hidden">
@@ -291,6 +291,18 @@ function FinishedScreen({ me, partner, answers, onRestart, onExit }:
         <div className="mt-10 flex gap-3">
           <button onClick={onRestart} className="btn-romance hover:btn-romance-hover">Play again</button>
           <button onClick={onExit} className="rounded-full border border-border bg-white/60 px-6 py-3 text-sm">Exit</button>
+        </div>
+        <div className="mt-12 w-full">
+          <p className="text-xs uppercase tracking-widest text-muted-foreground">Try another game</p>
+          <div className="mt-4 grid grid-cols-2 gap-2">
+            {GAME_LIST.map((g) => (
+              <button key={g.id} onClick={() => onSwitch(g.id)}
+                className="rounded-2xl border border-border bg-white/60 px-3 py-3 text-left transition hover:bg-white">
+                <div className="text-lg leading-none">{g.emoji}</div>
+                <div className="mt-2 font-serif text-base leading-tight">{g.title}</div>
+              </button>
+            ))}
+          </div>
         </div>
       </main>
     </div>
