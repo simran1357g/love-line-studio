@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getClientId } from "@/lib/client-id";
 import { getGame, GAME_LIST, type GameMode } from "@/lib/games";
 import { FloatingPetals } from "@/components/FloatingPetals";
+import { BackgroundMusic } from "@/components/BackgroundMusic";
 import { Heart, Copy, Check, ChevronRight, Sparkles } from "lucide-react";
 
 export const Route = createFileRoute("/room/$code")({
@@ -142,6 +143,7 @@ function RoomPage() {
   return (
     <div className="relative min-h-screen w-full overflow-hidden">
       <FloatingPetals />
+      <BackgroundMusic />
 
       <header className="relative z-10 mx-auto flex max-w-3xl items-center justify-between px-6 py-6">
         <div className="flex items-center gap-2 font-serif text-2xl text-[oklch(0.45_0.15_15)]">
