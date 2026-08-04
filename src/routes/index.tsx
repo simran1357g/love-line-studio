@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getClientId, generateRoomCode } from "@/lib/client-id";
 import { FloatingPetals } from "@/components/FloatingPetals";
 import heroImg from "@/assets/hero-romance.jpg";
-import { Heart, Sparkles } from "lucide-react";
+import { Heart, Sparkles, ArrowRight } from "lucide-react";
 import { GAME_LIST, type GameMode } from "@/lib/games";
 
 export const Route = createFileRoute("/")({
@@ -43,6 +43,30 @@ function Landing() {
       });
       if (pErr) throw pErr;
       navigate({ to: "/room/$code", params: { code } });
+    } catch (e) {
+      setError((e as Error).message ?? "Could not create room");
+      setLoading(false);
+    }
+  }
+
+  async function createCompatRoom() {
+    setLoading(true); setError(null);
+    try {
+      const code = generateRoomCode();
+      const { data: room, error: rErr } = await supabase
+        .from("rooms")
+        .insert({ code, status: "waiting", current_index: 0, mode: "compat" })
+        .select()
+        .single();
+      if (rErr || !room) throw rErr ?? new Error("Failed");
+      const { error: pErr } = await supabase.from("players").insert({
+        room_id: room.id,
+        name: (name.trim() || "You").slice(0, 30),
+        slot: 1,
+        client_id: getClientId(),
+      });
+      if (pErr) throw pErr;
+      navigate({ to: "/compat/$code", params: { code } });
     } catch (e) {
       setError((e as Error).message ?? "Could not create room");
       setLoading(false);
@@ -103,6 +127,25 @@ function Landing() {
         </p>
 
         <div className="mt-12 w-full max-w-md rounded-3xl p-8 glass-card" style={{ animation: "fade-in 1.1s ease" }}>
+          <button
+            onClick={createCompatRoom}
+            disabled={loading}
+            className="group mb-6 w-full rounded-3xl border border-[oklch(0.62_0.2_15)]/35 bg-gradient-to-br from-white/85 to-[oklch(0.94_0.04_20)]/80 p-5 text-left shadow-sm transition hover:shadow-md disabled:opacity-60"
+          >
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.25em] text-[oklch(0.55_0.18_15)]">
+                  <Sparkles className="h-3 w-3" /> New · Premium
+                </div>
+                <div className="mt-2 font-serif text-2xl leading-tight text-foreground">Compatibility Test 💞</div>
+                <p className="mt-1 text-xs leading-snug text-muted-foreground">
+                  25 questions, live chat, lock your answers, and reveal your love score.
+                </p>
+              </div>
+              <ArrowRight className="h-5 w-5 shrink-0 text-[oklch(0.55_0.18_15)] transition group-hover:translate-x-1" />
+            </div>
+          </button>
+
           <div className="mb-6">
             <label className="text-xs uppercase tracking-widest text-muted-foreground">Choose your game</label>
             <div className="mt-3 grid grid-cols-2 gap-2">
