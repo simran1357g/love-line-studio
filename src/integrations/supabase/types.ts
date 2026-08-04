@@ -19,6 +19,7 @@ export type Database = {
           answer: string
           created_at: string
           id: string
+          locked: boolean
           question_index: number
           room_id: string
           slot: number
@@ -27,6 +28,7 @@ export type Database = {
           answer: string
           created_at?: string
           id?: string
+          locked?: boolean
           question_index: number
           room_id: string
           slot: number
@@ -35,6 +37,7 @@ export type Database = {
           answer?: string
           created_at?: string
           id?: string
+          locked?: boolean
           question_index?: number
           room_id?: string
           slot?: number
@@ -42,6 +45,50 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "answers_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chat_messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          kind: string
+          name: string
+          reactions: Json
+          read_by: number[]
+          room_id: string
+          slot: number
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          kind?: string
+          name: string
+          reactions?: Json
+          read_by?: number[]
+          room_id: string
+          slot: number
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          kind?: string
+          name?: string
+          reactions?: Json
+          read_by?: number[]
+          room_id?: string
+          slot?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_messages_room_id_fkey"
             columns: ["room_id"]
             isOneToOne: false
             referencedRelation: "rooms"
@@ -77,6 +124,50 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "players_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      results: {
+        Row: {
+          categories: Json
+          code: string
+          created_at: string
+          id: string
+          insight: string | null
+          player_a: string
+          player_b: string
+          room_id: string
+          score: number
+        }
+        Insert: {
+          categories?: Json
+          code: string
+          created_at?: string
+          id?: string
+          insight?: string | null
+          player_a: string
+          player_b: string
+          room_id: string
+          score: number
+        }
+        Update: {
+          categories?: Json
+          code?: string
+          created_at?: string
+          id?: string
+          insight?: string | null
+          player_a?: string
+          player_b?: string
+          room_id?: string
+          score?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "results_room_id_fkey"
             columns: ["room_id"]
             isOneToOne: false
             referencedRelation: "rooms"
