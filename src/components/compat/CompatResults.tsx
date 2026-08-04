@@ -86,7 +86,7 @@ export function CompatResults({
           score: score.total,
           player_a: myName,
           player_b: partnerName,
-          categories: score.categories as unknown as Record<string, unknown>,
+          categories: JSON.parse(JSON.stringify(score.categories)),
           insight: res.insight,
         });
       } catch (e) {
