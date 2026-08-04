@@ -1,7 +1,9 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 
 export function FloatingHearts({ count = 14 }: { count?: number }) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
   const hearts = useMemo(
     () =>
       Array.from({ length: count }).map((_, i) => ({
@@ -14,6 +16,7 @@ export function FloatingHearts({ count = 14 }: { count?: number }) {
       })),
     [count],
   );
+  if (!mounted) return null;
   return (
     <div aria-hidden className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
       {hearts.map((h) => (
