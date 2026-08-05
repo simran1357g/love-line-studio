@@ -5,8 +5,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { getClientId } from "@/lib/client-id";
 import { getGame, GAME_LIST, type GameMode } from "@/lib/games";
 import { FloatingPetals } from "@/components/FloatingPetals";
-import { BackgroundMusic } from "@/components/BackgroundMusic";
 import { ChatPanel } from "@/components/compat/ChatPanel";
+import { ProgressHud } from "@/components/ProgressHud";
+import { RewardOverlay } from "@/components/RewardOverlay";
+import { SuspenseReveal } from "@/components/SuspenseReveal";
+import { award, touchStreak, xpMultiplier, type AwardResult } from "@/lib/progress";
+import { pop } from "@/lib/audio";
 import { Heart, Copy, Check, ChevronRight, Sparkles, MessageCircle, X } from "lucide-react";
 
 export const Route = createFileRoute("/room/$code")({
@@ -34,7 +38,12 @@ function RoomPage() {
   const [copied, setCopied] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
+  const [reward, setReward] = useState<AwardResult | null>(null);
+  const [revealed, setRevealed] = useState(false);
+  const [rewardedGame, setRewardedGame] = useState(false);
   const clientId = typeof window !== "undefined" ? getClientId() : "";
+
+  useEffect(() => { touchStreak(); }, []);
 
   // Initial load
   useEffect(() => {
