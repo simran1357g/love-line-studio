@@ -182,6 +182,7 @@ function RoomPage() {
   return (
     <div className="relative min-h-screen w-full overflow-x-hidden">
       <FloatingPetals />
+      <RewardOverlay result={reward} onClose={() => setReward(null)} />
 
       <header className="relative z-10 mx-auto flex max-w-7xl items-center justify-between px-6 py-6">
         <div className="flex items-center gap-2 font-serif text-2xl text-[oklch(0.45_0.15_15)]">
