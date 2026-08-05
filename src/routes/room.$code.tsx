@@ -159,11 +159,14 @@ function RoomPage() {
         stats: { trust: 3, communication: 3, romance: 4, humor: 3 },
       }));
     }
-    return <FinishedScreen me={me} partner={partner} answers={answers} onSwitch={switchGame} onRestart={async () => {
+    return <>
+      <RewardOverlay result={reward} onClose={() => setReward(null)} />
+      <FinishedScreen me={me} partner={partner} answers={answers} onSwitch={switchGame} onRestart={async () => {
       await supabase.from("answers").delete().eq("room_id", room!.id);
       await supabase.from("rooms").update({ current_index: 0 }).eq("id", room!.id);
       setRewardedGame(false);
-    }} onExit={() => navigate({ to: "/" })} />;
+    }} onExit={() => navigate({ to: "/" })} />
+    </>;
   }
 
   const chat = (
@@ -258,6 +261,8 @@ function RoomPage() {
               </div>
             )}
           </div>
+        ) : !revealed ? (
+          <SuspenseReveal onDone={() => setRevealed(true)} />
         ) : (
           <div className="mt-8 space-y-4" style={{ animation: "fade-in 0.6s ease" }}>
             <AnswerCard name={me.name} answer={myAnswer!.answer} isMe />
