@@ -125,6 +125,7 @@ function RoomPage() {
 
   async function submitValue(value: string) {
     if (!value.trim() || !me) return;
+    pop("send", 14);
     setSubmitting(true);
     const { error } = await supabase.from("answers").upsert({
       room_id: room!.id,
@@ -133,7 +134,10 @@ function RoomPage() {
       answer: value.trim(),
     }, { onConflict: "room_id,question_index,slot" });
     setSubmitting(false);
-    if (!error) setDraft("");
+    if (!error) {
+      setDraft("");
+      award({ xp: 6 * xpMultiplier(), lp: 3, answers: 1, stats: { communication: 1, romance: 1 } });
+    }
   }
 
   async function switchGame(mode: GameMode) {
@@ -142,13 +146,23 @@ function RoomPage() {
   }
 
   async function nextQuestion() {
+    pop("tap");
+    setRevealed(false);
     await supabase.from("rooms").update({ current_index: qIndex + 1 }).eq("id", room!.id);
   }
 
   if (finished) {
+    if (!rewardedGame) {
+      setRewardedGame(true);
+      setReward(award({
+        xp: 60 * xpMultiplier(), lp: 50, games: 1, card: true,
+        stats: { trust: 3, communication: 3, romance: 4, humor: 3 },
+      }));
+    }
     return <FinishedScreen me={me} partner={partner} answers={answers} onSwitch={switchGame} onRestart={async () => {
       await supabase.from("answers").delete().eq("room_id", room!.id);
       await supabase.from("rooms").update({ current_index: 0 }).eq("id", room!.id);
+      setRewardedGame(false);
     }} onExit={() => navigate({ to: "/" })} />;
   }
 
@@ -165,7 +179,6 @@ function RoomPage() {
   return (
     <div className="relative min-h-screen w-full overflow-x-hidden">
       <FloatingPetals />
-      <BackgroundMusic />
 
       <header className="relative z-10 mx-auto flex max-w-7xl items-center justify-between px-6 py-6">
         <div className="flex items-center gap-2 font-serif text-2xl text-[oklch(0.45_0.15_15)]">
@@ -173,6 +186,7 @@ function RoomPage() {
           Loveline
         </div>
         <div className="flex items-center gap-3 text-sm">
+          <ProgressHud compact />
           <span className="rounded-full border border-border bg-white/50 px-3 py-1 text-xs">{game.emoji} {game.title}</span>
           <span className="text-muted-foreground">You &amp; {partner?.name}</span>
         </div>
