@@ -1,11 +1,13 @@
 import { createFileRoute, useNavigate, useParams } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { getClientId } from "@/lib/client-id";
 import { getGame, GAME_LIST, type GameMode } from "@/lib/games";
 import { FloatingPetals } from "@/components/FloatingPetals";
 import { BackgroundMusic } from "@/components/BackgroundMusic";
-import { Heart, Copy, Check, ChevronRight, Sparkles } from "lucide-react";
+import { ChatPanel } from "@/components/compat/ChatPanel";
+import { Heart, Copy, Check, ChevronRight, Sparkles, MessageCircle, X } from "lucide-react";
 
 export const Route = createFileRoute("/room/$code")({
   component: RoomPage,
@@ -31,6 +33,7 @@ function RoomPage() {
   const [draft, setDraft] = useState("");
   const [copied, setCopied] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
   const clientId = typeof window !== "undefined" ? getClientId() : "";
 
   // Initial load
@@ -140,12 +143,22 @@ function RoomPage() {
     }} onExit={() => navigate({ to: "/" })} />;
   }
 
+  const chat = (
+    <ChatPanel
+      roomId={room.id}
+      mySlot={me.slot}
+      myName={me.name}
+      partnerName={partner?.name ?? "Partner"}
+      currentQuestion={question.q}
+    />
+  );
+
   return (
-    <div className="relative min-h-screen w-full overflow-hidden">
+    <div className="relative min-h-screen w-full overflow-x-hidden">
       <FloatingPetals />
       <BackgroundMusic />
 
-      <header className="relative z-10 mx-auto flex max-w-3xl items-center justify-between px-6 py-6">
+      <header className="relative z-10 mx-auto flex max-w-7xl items-center justify-between px-6 py-6">
         <div className="flex items-center gap-2 font-serif text-2xl text-[oklch(0.45_0.15_15)]">
           <Heart className="h-5 w-5" fill="currentColor" />
           Loveline
@@ -156,7 +169,8 @@ function RoomPage() {
         </div>
       </header>
 
-      <main className="relative z-10 mx-auto max-w-3xl px-6 pb-24">
+      <main className="relative z-10 mx-auto grid max-w-7xl gap-6 px-6 pb-28 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:pb-10">
+        <section className="min-w-0">
         <div className="mb-8 flex items-center justify-between text-xs uppercase tracking-widest text-muted-foreground">
           <span>Question {qIndex + 1} of {prompts.length}</span>
           <span className="rounded-full border border-border bg-white/50 px-3 py-1 font-serif italic normal-case">{question.category}</span>
@@ -232,7 +246,49 @@ function RoomPage() {
             </div>
           </div>
         )}
+        </section>
+
+        <aside className="hidden min-h-0 lg:block lg:h-[calc(100vh-8rem)] lg:sticky lg:top-6">{chat}</aside>
       </main>
+
+      {/* Mobile chat drawer */}
+      <button
+        onClick={() => setChatOpen(true)}
+        className="fixed bottom-5 left-1/2 z-30 flex -translate-x-1/2 items-center gap-2 rounded-full bg-[oklch(0.62_0.2_15)] px-6 py-3 text-sm text-[oklch(0.99_0.01_20)] shadow-xl lg:hidden"
+      >
+        <MessageCircle className="h-4 w-4" /> Chat with {partner?.name}
+      </button>
+      <AnimatePresence>
+        {chatOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setChatOpen(false)}
+              className="fixed inset-0 z-40 bg-black/20 lg:hidden"
+            />
+            <motion.div
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 26, stiffness: 240 }}
+              className="fixed inset-x-0 bottom-0 z-50 h-[82vh] lg:hidden"
+            >
+              <div className="relative h-full px-2 pb-2">
+                <button
+                  onClick={() => setChatOpen(false)}
+                  className="absolute right-5 top-4 z-10 rounded-full bg-white/80 p-1.5"
+                  aria-label="Close chat"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+                {chat}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
