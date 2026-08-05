@@ -7,7 +7,10 @@ import { COMPAT_QUESTIONS } from "@/lib/compatibility";
 import { FloatingHearts } from "@/components/compat/FloatingHearts";
 import { ChatPanel } from "@/components/compat/ChatPanel";
 import { CompatResults } from "@/components/compat/CompatResults";
-import { BackgroundMusic } from "@/components/BackgroundMusic";
+import { ProgressHud } from "@/components/ProgressHud";
+import { RewardOverlay } from "@/components/RewardOverlay";
+import { award, touchStreak, xpMultiplier, type AwardResult } from "@/lib/progress";
+import { pop } from "@/lib/audio";
 import { Check, ChevronLeft, ChevronRight, Copy, Heart, Lock, MessageCircle, X } from "lucide-react";
 
 export const Route = createFileRoute("/compat/$code")({
@@ -43,7 +46,11 @@ function CompatPage() {
   const [chatOpen, setChatOpen] = useState(false);
   const [joinName, setJoinName] = useState("");
   const [joining, setJoining] = useState(false);
+  const [reward, setReward] = useState<AwardResult | null>(null);
+  const [rewarded, setRewarded] = useState(false);
   const clientId = typeof window !== "undefined" ? getClientId() : "";
+
+  useEffect(() => { touchStreak(); }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -184,6 +191,11 @@ function CompatPage() {
   }
 
   if (iLocked && partnerLocked) {
+    if (!rewarded) {
+      setRewarded(true);
+      setReward(award({ xp: 120 * xpMultiplier(), lp: 100, games: 1, card: true,
+        stats: { trust: 5, communication: 4, romance: 5, humor: 3 } }));
+    }
     const bySlot: Record<number, string[]> = { 1: [], 2: [] };
     answers.forEach((a) => {
       if (!bySlot[a.slot]) bySlot[a.slot] = [];
@@ -191,6 +203,7 @@ function CompatPage() {
     });
     return (
       <Shell wide>
+        <RewardOverlay result={reward} onClose={() => setReward(null)} />
         <CompatResults
           roomId={room.id}
           code={code}
@@ -202,6 +215,7 @@ function CompatPage() {
             await supabase.from("answers").delete().eq("room_id", room.id);
             setAnswers([]);
             setIndex(0);
+            setRewarded(false);
           }}
           onExit={() => navigate({ to: "/" })}
         />
@@ -216,6 +230,8 @@ function CompatPage() {
 
   async function pick(option: string) {
     if (!me || iLocked) return;
+    pop("tap", 12);
+    award({ xp: 5 * xpMultiplier(), lp: 2, answers: 1, stats: { trust: 1 } });
     setAnswers((prev) => [
       ...prev.filter((a) => !(a.slot === me.slot && a.question_index === index)),
       { id: `local-${index}`, room_id: room!.id, question_index: index, slot: me.slot, answer: option, locked: false },
@@ -231,6 +247,7 @@ function CompatPage() {
 
   async function lockAnswers() {
     if (!me) return;
+    pop("reveal", [20, 60, 20]);
     await supabase.from("answers").update({ locked: true }).eq("room_id", room!.id).eq("slot", me.slot);
   }
 
@@ -247,7 +264,7 @@ function CompatPage() {
   return (
     <div className="relative min-h-screen w-full overflow-x-hidden">
       <FloatingHearts />
-      <BackgroundMusic />
+      <RewardOverlay result={reward} onClose={() => setReward(null)} />
 
       <header className="relative z-10 mx-auto grid max-w-7xl grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-5 py-5 sm:flex sm:justify-between">
         <div className="flex min-w-0 items-center gap-2 font-serif text-2xl text-[oklch(0.45_0.15_15)]">
@@ -255,6 +272,7 @@ function CompatPage() {
           <span className="truncate">Compatibility Test</span>
         </div>
         <div className="flex shrink-0 items-center gap-2 text-xs">
+          <ProgressHud compact />
           <span className="rounded-full border border-border bg-white/60 px-3 py-1">
             {me.name} &amp; {partner?.name}
           </span>

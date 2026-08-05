@@ -5,8 +5,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { getClientId } from "@/lib/client-id";
 import { getGame, GAME_LIST, type GameMode } from "@/lib/games";
 import { FloatingPetals } from "@/components/FloatingPetals";
-import { BackgroundMusic } from "@/components/BackgroundMusic";
 import { ChatPanel } from "@/components/compat/ChatPanel";
+import { ProgressHud } from "@/components/ProgressHud";
+import { RewardOverlay } from "@/components/RewardOverlay";
+import { SuspenseReveal } from "@/components/SuspenseReveal";
+import { award, touchStreak, xpMultiplier, type AwardResult } from "@/lib/progress";
+import { pop } from "@/lib/audio";
 import { Heart, Copy, Check, ChevronRight, Sparkles, MessageCircle, X } from "lucide-react";
 
 export const Route = createFileRoute("/room/$code")({
@@ -34,7 +38,12 @@ function RoomPage() {
   const [copied, setCopied] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
+  const [reward, setReward] = useState<AwardResult | null>(null);
+  const [revealed, setRevealed] = useState(false);
+  const [rewardedGame, setRewardedGame] = useState(false);
   const clientId = typeof window !== "undefined" ? getClientId() : "";
+
+  useEffect(() => { touchStreak(); }, []);
 
   // Initial load
   useEffect(() => {
@@ -116,6 +125,7 @@ function RoomPage() {
 
   async function submitValue(value: string) {
     if (!value.trim() || !me) return;
+    pop("send", 14);
     setSubmitting(true);
     const { error } = await supabase.from("answers").upsert({
       room_id: room!.id,
@@ -124,7 +134,10 @@ function RoomPage() {
       answer: value.trim(),
     }, { onConflict: "room_id,question_index,slot" });
     setSubmitting(false);
-    if (!error) setDraft("");
+    if (!error) {
+      setDraft("");
+      award({ xp: 6 * xpMultiplier(), lp: 3, answers: 1, stats: { communication: 1, romance: 1 } });
+    }
   }
 
   async function switchGame(mode: GameMode) {
@@ -133,14 +146,27 @@ function RoomPage() {
   }
 
   async function nextQuestion() {
+    pop("tap");
+    setRevealed(false);
     await supabase.from("rooms").update({ current_index: qIndex + 1 }).eq("id", room!.id);
   }
 
   if (finished) {
-    return <FinishedScreen me={me} partner={partner} answers={answers} onSwitch={switchGame} onRestart={async () => {
+    if (!rewardedGame) {
+      setRewardedGame(true);
+      setReward(award({
+        xp: 60 * xpMultiplier(), lp: 50, games: 1, card: true,
+        stats: { trust: 3, communication: 3, romance: 4, humor: 3 },
+      }));
+    }
+    return <>
+      <RewardOverlay result={reward} onClose={() => setReward(null)} />
+      <FinishedScreen me={me} partner={partner} answers={answers} onSwitch={switchGame} onRestart={async () => {
       await supabase.from("answers").delete().eq("room_id", room!.id);
       await supabase.from("rooms").update({ current_index: 0 }).eq("id", room!.id);
-    }} onExit={() => navigate({ to: "/" })} />;
+      setRewardedGame(false);
+    }} onExit={() => navigate({ to: "/" })} />
+    </>;
   }
 
   const chat = (
@@ -156,7 +182,7 @@ function RoomPage() {
   return (
     <div className="relative min-h-screen w-full overflow-x-hidden">
       <FloatingPetals />
-      <BackgroundMusic />
+      <RewardOverlay result={reward} onClose={() => setReward(null)} />
 
       <header className="relative z-10 mx-auto flex max-w-7xl items-center justify-between px-6 py-6">
         <div className="flex items-center gap-2 font-serif text-2xl text-[oklch(0.45_0.15_15)]">
@@ -164,6 +190,7 @@ function RoomPage() {
           Loveline
         </div>
         <div className="flex items-center gap-3 text-sm">
+          <ProgressHud compact />
           <span className="rounded-full border border-border bg-white/50 px-3 py-1 text-xs">{game.emoji} {game.title}</span>
           <span className="text-muted-foreground">You &amp; {partner?.name}</span>
         </div>
@@ -235,6 +262,8 @@ function RoomPage() {
               </div>
             )}
           </div>
+        ) : !revealed ? (
+          <SuspenseReveal onDone={() => setRevealed(true)} />
         ) : (
           <div className="mt-8 space-y-4" style={{ animation: "fade-in 0.6s ease" }}>
             <AnswerCard name={me.name} answer={myAnswer!.answer} isMe />

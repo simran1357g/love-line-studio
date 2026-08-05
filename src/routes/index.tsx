@@ -1,11 +1,16 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getClientId, generateRoomCode } from "@/lib/client-id";
 import { FloatingPetals } from "@/components/FloatingPetals";
 import heroImg from "@/assets/hero-romance.jpg";
 import { Heart, Sparkles, ArrowRight } from "lucide-react";
 import { GAME_LIST, type GameMode } from "@/lib/games";
+import { ProgressHud } from "@/components/ProgressHud";
+import { LuckySpin } from "@/components/LuckySpin";
+import { RewardOverlay } from "@/components/RewardOverlay";
+import { activeEvents, loadProgress, touchStreak, type AwardResult } from "@/lib/progress";
+import { pop } from "@/lib/audio";
 
 export const Route = createFileRoute("/")({
   component: Landing,
@@ -24,6 +29,13 @@ function Landing() {
   const [mode, setMode] = useState<GameMode>("questions");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [reward, setReward] = useState<AwardResult | null>(null);
+  const [events, setEvents] = useState<ReturnType<typeof activeEvents>>([]);
+
+  useEffect(() => {
+    touchStreak();
+    setEvents(activeEvents(loadProgress()));
+  }, []);
 
   async function createRoom() {
     setLoading(true); setError(null);
@@ -97,7 +109,7 @@ function Landing() {
         });
         if (pErr) throw pErr;
       }
-      navigate({ to: "/room/$code", params: { code } });
+      navigate({ to: room.mode === "compat" ? "/compat/$code" : "/room/$code", params: { code } });
     } catch (e) {
       setError((e as Error).message ?? "Could not join");
       setLoading(false);
@@ -114,6 +126,8 @@ function Landing() {
       </div>
 
       <main className="relative z-10 mx-auto flex min-h-screen max-w-2xl flex-col items-center justify-center px-6 py-16">
+        <RewardOverlay result={reward} onClose={() => setReward(null)} />
+        <div className="mb-6"><ProgressHud /></div>
         <div className="mb-2 flex items-center gap-2 text-sm uppercase tracking-[0.3em] text-[oklch(0.55_0.18_15)]">
           <Sparkles className="h-4 w-4" />
           <span>A virtual date, for two</span>
@@ -127,8 +141,21 @@ function Landing() {
         </p>
 
         <div className="mt-12 w-full max-w-md rounded-3xl p-8 glass-card" style={{ animation: "fade-in 1.1s ease" }}>
+          <div className="mb-6 space-y-2">
+            <LuckySpin onReward={setReward} />
+            {events.map((ev) => (
+              <div key={ev.id} className="flex items-center gap-3 rounded-2xl border border-[oklch(0.62_0.2_15)]/25 bg-white/60 px-4 py-3 text-left">
+                <span className="text-xl">{ev.emoji}</span>
+                <span className="min-w-0 flex-1">
+                  <span className="block font-serif text-base leading-tight">{ev.title}</span>
+                  <span className="block text-[11px] leading-snug text-muted-foreground">{ev.desc}</span>
+                </span>
+                <span className="shrink-0 rounded-full bg-[oklch(0.62_0.2_15)] px-2 py-0.5 text-[10px] text-white">{ev.bonus}</span>
+              </div>
+            ))}
+          </div>
           <button
-            onClick={createCompatRoom}
+            onClick={() => { pop("tap"); createCompatRoom(); }}
             disabled={loading}
             className="group mb-6 w-full rounded-3xl border border-[oklch(0.62_0.2_15)]/35 bg-gradient-to-br from-white/85 to-[oklch(0.94_0.04_20)]/80 p-5 text-left shadow-sm transition hover:shadow-md disabled:opacity-60"
           >
