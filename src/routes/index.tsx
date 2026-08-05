@@ -1,11 +1,16 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getClientId, generateRoomCode } from "@/lib/client-id";
 import { FloatingPetals } from "@/components/FloatingPetals";
 import heroImg from "@/assets/hero-romance.jpg";
 import { Heart, Sparkles, ArrowRight } from "lucide-react";
 import { GAME_LIST, type GameMode } from "@/lib/games";
+import { ProgressHud } from "@/components/ProgressHud";
+import { LuckySpin } from "@/components/LuckySpin";
+import { RewardOverlay } from "@/components/RewardOverlay";
+import { activeEvents, loadProgress, touchStreak, type AwardResult } from "@/lib/progress";
+import { pop } from "@/lib/audio";
 
 export const Route = createFileRoute("/")({
   component: Landing,
@@ -24,6 +29,13 @@ function Landing() {
   const [mode, setMode] = useState<GameMode>("questions");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [reward, setReward] = useState<AwardResult | null>(null);
+  const [events, setEvents] = useState<ReturnType<typeof activeEvents>>([]);
+
+  useEffect(() => {
+    touchStreak();
+    setEvents(activeEvents(loadProgress()));
+  }, []);
 
   async function createRoom() {
     setLoading(true); setError(null);
