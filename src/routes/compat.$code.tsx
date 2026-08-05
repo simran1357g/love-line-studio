@@ -7,7 +7,10 @@ import { COMPAT_QUESTIONS } from "@/lib/compatibility";
 import { FloatingHearts } from "@/components/compat/FloatingHearts";
 import { ChatPanel } from "@/components/compat/ChatPanel";
 import { CompatResults } from "@/components/compat/CompatResults";
-import { BackgroundMusic } from "@/components/BackgroundMusic";
+import { ProgressHud } from "@/components/ProgressHud";
+import { RewardOverlay } from "@/components/RewardOverlay";
+import { award, touchStreak, xpMultiplier, type AwardResult } from "@/lib/progress";
+import { pop } from "@/lib/audio";
 import { Check, ChevronLeft, ChevronRight, Copy, Heart, Lock, MessageCircle, X } from "lucide-react";
 
 export const Route = createFileRoute("/compat/$code")({
@@ -247,7 +250,6 @@ function CompatPage() {
   return (
     <div className="relative min-h-screen w-full overflow-x-hidden">
       <FloatingHearts />
-      <BackgroundMusic />
 
       <header className="relative z-10 mx-auto grid max-w-7xl grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-5 py-5 sm:flex sm:justify-between">
         <div className="flex min-w-0 items-center gap-2 font-serif text-2xl text-[oklch(0.45_0.15_15)]">
@@ -255,6 +257,7 @@ function CompatPage() {
           <span className="truncate">Compatibility Test</span>
         </div>
         <div className="flex shrink-0 items-center gap-2 text-xs">
+          <ProgressHud compact />
           <span className="rounded-full border border-border bg-white/60 px-3 py-1">
             {me.name} &amp; {partner?.name}
           </span>
