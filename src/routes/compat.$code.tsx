@@ -46,7 +46,11 @@ function CompatPage() {
   const [chatOpen, setChatOpen] = useState(false);
   const [joinName, setJoinName] = useState("");
   const [joining, setJoining] = useState(false);
+  const [reward, setReward] = useState<AwardResult | null>(null);
+  const [rewarded, setRewarded] = useState(false);
   const clientId = typeof window !== "undefined" ? getClientId() : "";
+
+  useEffect(() => { touchStreak(); }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -219,6 +223,8 @@ function CompatPage() {
 
   async function pick(option: string) {
     if (!me || iLocked) return;
+    pop("tap", 12);
+    award({ xp: 5 * xpMultiplier(), lp: 2, answers: 1, stats: { trust: 1 } });
     setAnswers((prev) => [
       ...prev.filter((a) => !(a.slot === me.slot && a.question_index === index)),
       { id: `local-${index}`, room_id: room!.id, question_index: index, slot: me.slot, answer: option, locked: false },
@@ -234,6 +240,7 @@ function CompatPage() {
 
   async function lockAnswers() {
     if (!me) return;
+    pop("reveal", [20, 60, 20]);
     await supabase.from("answers").update({ locked: true }).eq("room_id", room!.id).eq("slot", me.slot);
   }
 
