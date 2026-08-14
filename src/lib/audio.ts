@@ -1,6 +1,11 @@
-import songAsset from "@/assets/until-i-found-you.mp3.asset.json";
-
 type Sub = (playing: boolean) => void;
+
+/**
+ * Playlist — files live in /public/music so they ship with any host
+ * (Vercel, Netlify, Lovable). Add more tracks here later; with a single
+ * track the player loops it forever.
+ */
+export const PLAYLIST = ["/music/until-i-found-you.mp3"];
 
 declare global {
   interface Window {
@@ -15,12 +20,23 @@ const subs = new Set<Sub>();
 export function getMusic(): HTMLAudioElement | null {
   if (typeof window === "undefined") return null;
   if (!window.__loveline_audio) {
-    const a = new Audio(songAsset.url);
-    a.loop = true;
+    const a = new Audio(PLAYLIST[0]);
+    a.loop = PLAYLIST.length === 1;
     a.volume = 0.32;
     a.preload = "auto";
     a.addEventListener("play", () => subs.forEach((s) => s(true)));
     a.addEventListener("pause", () => subs.forEach((s) => s(false)));
+    // With multiple tracks, advance through the playlist and wrap around.
+    a.addEventListener("ended", () => {
+      if (PLAYLIST.length < 2) {
+        a.currentTime = 0;
+        void a.play().catch(() => {});
+        return;
+      }
+      const i = PLAYLIST.findIndex((s) => a.src.endsWith(s));
+      a.src = PLAYLIST[(i + 1) % PLAYLIST.length];
+      void a.play().catch(() => {});
+    });
     window.__loveline_audio = a;
   }
   return window.__loveline_audio;
