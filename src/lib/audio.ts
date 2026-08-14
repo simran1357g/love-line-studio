@@ -7,6 +7,24 @@ type Sub = (playing: boolean) => void;
  */
 export const PLAYLIST = ["/music/until-i-found-you.mp3"];
 
+const MUTE_KEY = "loveline_music_muted";
+
+function readMuted(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return window.localStorage.getItem(MUTE_KEY) === "true";
+  } catch {
+    return false;
+  }
+}
+
+function writeMuted(muted: boolean) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(MUTE_KEY, String(muted));
+  } catch { /* ignore */ }
+}
+
 declare global {
   interface Window {
     __loveline_audio?: HTMLAudioElement;
@@ -15,6 +33,7 @@ declare global {
 }
 
 const subs = new Set<Sub>();
+let muted = readMuted();
 
 /** Single <audio> instance for the whole app — survives route changes & re-renders. */
 export function getMusic(): HTMLAudioElement | null {
@@ -52,18 +71,29 @@ export function isMusicPlaying() {
   return !!a && !a.paused;
 }
 
+export function isMusicMuted() {
+  return muted;
+}
+
 /** Start playback only if it isn't already going (never restarts the track). */
 export function ensureMusic() {
   const a = getMusic();
-  if (!a || !a.paused) return;
+  if (!a || !a.paused || muted) return;
   a.play().catch(() => {});
 }
 
 export function toggleMusic() {
   const a = getMusic();
   if (!a) return;
-  if (a.paused) a.play().catch(() => {});
-  else a.pause();
+  if (a.paused) {
+    muted = false;
+    writeMuted(false);
+    void a.play().catch(() => {});
+  } else {
+    muted = true;
+    writeMuted(true);
+    a.pause();
+  }
 }
 
 function ctx(): AudioContext | null {
