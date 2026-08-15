@@ -40,7 +40,6 @@ export function ChatPanel({
   const listRef = useRef<HTMLDivElement>(null);
   const typingChannel = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const typingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const instanceId = useRef(Math.random().toString(36).slice(2, 9));
 
   useEffect(() => {
     let cancelled = false;
@@ -65,7 +64,7 @@ export function ChatPanel({
 
   useEffect(() => {
     const channel = supabase
-      .channel(`chat:${roomId}:${instanceId.current}`, { config: { broadcast: { self: false } } })
+      .channel(`chat:${roomId}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "chat_messages", filter: `room_id=eq.${roomId}` },
