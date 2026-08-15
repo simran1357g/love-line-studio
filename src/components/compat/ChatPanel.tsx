@@ -43,16 +43,22 @@ export function ChatPanel({
 
   useEffect(() => {
     let cancelled = false;
-    supabase
-      .from("chat_messages")
-      .select()
-      .eq("room_id", roomId)
-      .order("created_at")
-      .then(({ data }) => {
-        if (!cancelled) setMessages((data ?? []) as unknown as ChatMessage[]);
-      });
+    const load = () =>
+      supabase
+        .from("chat_messages")
+        .select()
+        .eq("room_id", roomId)
+        .order("created_at")
+        .then(({ data }) => {
+          if (cancelled) return;
+          const next = (data ?? []) as unknown as ChatMessage[];
+          setMessages((prev) => (JSON.stringify(prev) === JSON.stringify(next) ? prev : next));
+        });
+    load();
+    const timer = setInterval(load, 2500);
     return () => {
       cancelled = true;
+      clearInterval(timer);
     };
   }, [roomId]);
 

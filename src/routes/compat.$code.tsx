@@ -67,18 +67,26 @@ function CompatPage() {
         setNotFound(true);
         return;
       }
-      setRoom(r as Room);
+      setRoom((prev) => (prev && JSON.stringify(prev) === JSON.stringify(r) ? prev : (r as Room)));
       const [{ data: ps }, { data: as }] = await Promise.all([
         supabase.from("players").select().eq("room_id", r.id),
         supabase.from("answers").select().eq("room_id", r.id),
       ]);
       if (cancelled) return;
-      setPlayers((ps ?? []) as Player[]);
-      setAnswers((as ?? []) as Answer[]);
+      setPlayers((prev) => {
+        const next = (ps ?? []) as Player[];
+        return JSON.stringify(prev) === JSON.stringify(next) ? prev : next;
+      });
+      setAnswers((prev) => {
+        const next = (as ?? []) as Answer[];
+        return JSON.stringify(prev) === JSON.stringify(next) ? prev : next;
+      });
     }
     load();
+    const timer = setInterval(load, 2500);
     return () => {
       cancelled = true;
+      clearInterval(timer);
     };
   }, [code]);
 
