@@ -6,6 +6,7 @@ import { getClientId } from "@/lib/client-id";
 import { getGame, GAME_LIST, type GameMode } from "@/lib/games";
 import { FloatingPetals } from "@/components/FloatingPetals";
 import { ChatPanel } from "@/components/compat/ChatPanel";
+import { useIsDesktop } from "@/hooks/use-mobile";
 import { ProgressHud } from "@/components/ProgressHud";
 import { RewardOverlay } from "@/components/RewardOverlay";
 import { SuspenseReveal } from "@/components/SuspenseReveal";
@@ -41,28 +42,36 @@ function RoomPage() {
   const [reward, setReward] = useState<AwardResult | null>(null);
   const [revealed, setRevealed] = useState(false);
   const [rewardedGame, setRewardedGame] = useState(false);
+  const isDesktop = useIsDesktop();
   const clientId = typeof window !== "undefined" ? getClientId() : "";
 
   useEffect(() => { touchStreak(); }, []);
 
-  // Initial load
+  // Initial load + polling fallback (in case realtime is blocked on mobile networks)
   useEffect(() => {
     let cancelled = false;
     async function load() {
       const { data: r } = await supabase.from("rooms").select().eq("code", code).maybeSingle();
       if (cancelled) return;
       if (!r) { setNotFound(true); return; }
-      setRoom(r as Room);
+      setRoom((prev) => (prev && JSON.stringify(prev) === JSON.stringify(r) ? prev : (r as Room)));
       const [{ data: ps }, { data: as }] = await Promise.all([
         supabase.from("players").select().eq("room_id", r.id),
         supabase.from("answers").select().eq("room_id", r.id),
       ]);
       if (cancelled) return;
-      setPlayers((ps ?? []) as Player[]);
-      setAnswers((as ?? []) as Answer[]);
+      setPlayers((prev) => {
+        const next = (ps ?? []) as Player[];
+        return JSON.stringify(prev) === JSON.stringify(next) ? prev : next;
+      });
+      setAnswers((prev) => {
+        const next = (as ?? []) as Answer[];
+        return JSON.stringify(prev) === JSON.stringify(next) ? prev : next;
+      });
     }
     load();
-    return () => { cancelled = true; };
+    const timer = setInterval(load, 2500);
+    return () => { cancelled = true; clearInterval(timer); };
   }, [code]);
 
   // Realtime
@@ -102,7 +111,29 @@ function RoomPage() {
   if (notFound) return <NotFoundScreen />;
   if (!room) return <LoadingScreen />;
 
-  if (!me) return <SpectatorFullScreen code={code} />;
+  if (!me) {
+    if (players.length >= 2) return <SpectatorFullScreen code={code} />;
+    return (
+      <JoinScreen
+        code={code}
+        hostName={players[0]?.name}
+        joining={submitting}
+        onJoin={async (name) => {
+          setSubmitting(true);
+          const slot = players.some((p) => p.slot === 1) ? 2 : 1;
+          await supabase.from("players").insert({
+            room_id: room!.id,
+            name: (name.trim() || "Partner").slice(0, 30),
+            slot,
+            client_id: clientId,
+          });
+          const { data: ps } = await supabase.from("players").select().eq("room_id", room!.id);
+          setPlayers((ps ?? []) as Player[]);
+          setSubmitting(false);
+        }}
+      />
+    );
+  }
 
   // Waiting screen — only 1 player
   if (players.length < 2) {
@@ -277,7 +308,9 @@ function RoomPage() {
         )}
         </section>
 
-        <aside className="hidden min-h-0 lg:block lg:h-[calc(100vh-8rem)] lg:sticky lg:top-6">{chat}</aside>
+        {isDesktop && (
+          <aside className="min-h-0 lg:h-[calc(100vh-8rem)] lg:sticky lg:top-6">{chat}</aside>
+        )}
       </main>
 
       {/* Mobile chat drawer */}
@@ -288,7 +321,7 @@ function RoomPage() {
         <MessageCircle className="h-4 w-4" /> Chat with {partner?.name}
       </button>
       <AnimatePresence>
-        {chatOpen && (
+        {chatOpen && !isDesktop && (
           <>
             <motion.div
               initial={{ opacity: 0 }}
@@ -420,6 +453,44 @@ function SpectatorFullScreen({ code }: { code: string }) {
       <h1 className="font-serif text-4xl">This room is full</h1>
       <p className="mt-2 text-muted-foreground">Room {code} already has two hearts inside.</p>
       <a href="/" className="btn-romance mt-6">Start your own date</a>
+    </div>
+  );
+}
+
+function JoinScreen({
+  code,
+  hostName,
+  joining,
+  onJoin,
+}: {
+  code: string;
+  hostName?: string;
+  joining: boolean;
+  onJoin: (name: string) => void | Promise<void>;
+}) {
+  const [name, setName] = useState("");
+  return (
+    <div className="relative flex min-h-screen flex-col items-center justify-center px-6 text-center">
+      <FloatingPetals />
+      <div className="relative z-10 w-full max-w-md rounded-3xl p-8 glass-card">
+        <Heart className="mx-auto h-8 w-8 text-[oklch(0.62_0.2_15)]" fill="currentColor" />
+        <h1 className="mt-4 font-serif text-3xl">{hostName ? `${hostName} is waiting…` : "Join the date"}</h1>
+        <p className="mt-2 text-sm text-muted-foreground">Room {code}</p>
+        <input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Your name (optional)"
+          maxLength={30}
+          className="mt-6 w-full rounded-full border border-border bg-white/70 px-5 py-3 text-center font-serif italic outline-none focus:border-[oklch(0.62_0.2_15)]"
+        />
+        <button
+          onClick={() => onJoin(name)}
+          disabled={joining}
+          className="btn-romance hover:btn-romance-hover mt-4 w-full disabled:opacity-50"
+        >
+          {joining ? "Joining…" : "Join the date"}
+        </button>
+      </div>
     </div>
   );
 }

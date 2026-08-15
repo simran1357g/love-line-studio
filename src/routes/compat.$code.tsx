@@ -6,6 +6,7 @@ import { getClientId } from "@/lib/client-id";
 import { COMPAT_QUESTIONS } from "@/lib/compatibility";
 import { FloatingHearts } from "@/components/compat/FloatingHearts";
 import { ChatPanel } from "@/components/compat/ChatPanel";
+import { useIsDesktop } from "@/hooks/use-mobile";
 import { CompatResults } from "@/components/compat/CompatResults";
 import { ProgressHud } from "@/components/ProgressHud";
 import { RewardOverlay } from "@/components/RewardOverlay";
@@ -44,6 +45,7 @@ function CompatPage() {
   const [index, setIndex] = useState(0);
   const [copied, setCopied] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
+  const isDesktop = useIsDesktop();
   const [joinName, setJoinName] = useState("");
   const [joining, setJoining] = useState(false);
   const [reward, setReward] = useState<AwardResult | null>(null);
@@ -67,18 +69,26 @@ function CompatPage() {
         setNotFound(true);
         return;
       }
-      setRoom(r as Room);
+      setRoom((prev) => (prev && JSON.stringify(prev) === JSON.stringify(r) ? prev : (r as Room)));
       const [{ data: ps }, { data: as }] = await Promise.all([
         supabase.from("players").select().eq("room_id", r.id),
         supabase.from("answers").select().eq("room_id", r.id),
       ]);
       if (cancelled) return;
-      setPlayers((ps ?? []) as Player[]);
-      setAnswers((as ?? []) as Answer[]);
+      setPlayers((prev) => {
+        const next = (ps ?? []) as Player[];
+        return JSON.stringify(prev) === JSON.stringify(next) ? prev : next;
+      });
+      setAnswers((prev) => {
+        const next = (as ?? []) as Answer[];
+        return JSON.stringify(prev) === JSON.stringify(next) ? prev : next;
+      });
     }
     load();
+    const timer = setInterval(load, 2500);
     return () => {
       cancelled = true;
+      clearInterval(timer);
     };
   }, [code]);
 
@@ -370,7 +380,9 @@ function CompatPage() {
           </div>
         </section>
 
-        <aside className="hidden min-h-0 lg:block lg:h-[calc(100vh-8rem)] lg:sticky lg:top-6">{chat}</aside>
+        {isDesktop && (
+          <aside className="min-h-0 lg:h-[calc(100vh-8rem)] lg:sticky lg:top-6">{chat}</aside>
+        )}
       </main>
 
       {/* Mobile chat drawer */}
@@ -381,7 +393,7 @@ function CompatPage() {
         <MessageCircle className="h-4 w-4" /> Chat with {partner?.name}
       </button>
       <AnimatePresence>
-        {chatOpen && (
+        {chatOpen && !isDesktop && (
           <>
             <motion.div
               initial={{ opacity: 0 }}
