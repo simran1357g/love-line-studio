@@ -45,24 +45,31 @@ function RoomPage() {
 
   useEffect(() => { touchStreak(); }, []);
 
-  // Initial load
+  // Initial load + polling fallback (in case realtime is blocked on mobile networks)
   useEffect(() => {
     let cancelled = false;
     async function load() {
       const { data: r } = await supabase.from("rooms").select().eq("code", code).maybeSingle();
       if (cancelled) return;
       if (!r) { setNotFound(true); return; }
-      setRoom(r as Room);
+      setRoom((prev) => (prev && JSON.stringify(prev) === JSON.stringify(r) ? prev : (r as Room)));
       const [{ data: ps }, { data: as }] = await Promise.all([
         supabase.from("players").select().eq("room_id", r.id),
         supabase.from("answers").select().eq("room_id", r.id),
       ]);
       if (cancelled) return;
-      setPlayers((ps ?? []) as Player[]);
-      setAnswers((as ?? []) as Answer[]);
+      setPlayers((prev) => {
+        const next = (ps ?? []) as Player[];
+        return JSON.stringify(prev) === JSON.stringify(next) ? prev : next;
+      });
+      setAnswers((prev) => {
+        const next = (as ?? []) as Answer[];
+        return JSON.stringify(prev) === JSON.stringify(next) ? prev : next;
+      });
     }
     load();
-    return () => { cancelled = true; };
+    const timer = setInterval(load, 2500);
+    return () => { cancelled = true; clearInterval(timer); };
   }, [code]);
 
   // Realtime
