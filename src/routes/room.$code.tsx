@@ -452,3 +452,51 @@ function SpectatorFullScreen({ code }: { code: string }) {
     </div>
   );
 }
+
+function JoinScreen({
+  code,
+  hostName,
+  joining,
+  onJoin,
+}: {
+  code: string;
+  hostName?: string;
+  joining: boolean;
+  onJoin: (name: string) => void | Promise<void>;
+}) {
+  const [name, setName] = useState("");
+  return (
+    <div className="relative flex min-h-screen flex-col items-center justify-center px-6 text-center">
+      <FloatingPetals />
+      <div className="relative z-10 w-full max-w-md rounded-3xl p-8 glass-card">
+        <Heart className="mx-auto h-8 w-8 text-[oklch(0.62_0.2_15)]" fill="currentColor" />
+        <h1 className="mt-4 font-serif text-3xl">{hostName ? `${hostName} is waiting…` : "Join the date"}</h1>
+        <p className="mt-2 text-sm text-muted-foreground">Room {code}</p>
+        <input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Your name (optional)"
+          maxLength={30}
+          className="mt-6 w-full rounded-full border border-border bg-white/70 px-5 py-3 text-center font-serif italic outline-none focus:border-[oklch(0.62_0.2_15)]"
+        />
+        <button
+          onClick={() => onJoin(name)}
+          disabled={joining}
+          className="btn-romance hover:btn-romance-hover mt-4 w-full disabled:opacity-50"
+        >
+          {joining ? "Joining…" : "Join the date"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function UnusedSpectator({ code }: { code: string }) {
+  return (
+    <div className="flex min-h-screen flex-col items-center justify-center text-center px-6">
+      <h1 className="font-serif text-4xl">This room is full</h1>
+      <p className="mt-2 text-muted-foreground">Room {code} already has two hearts inside.</p>
+      <a href="/" className="btn-romance mt-6">Start your own date</a>
+    </div>
+  );
+}
