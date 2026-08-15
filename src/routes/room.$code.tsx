@@ -109,7 +109,29 @@ function RoomPage() {
   if (notFound) return <NotFoundScreen />;
   if (!room) return <LoadingScreen />;
 
-  if (!me) return <SpectatorFullScreen code={code} />;
+  if (!me) {
+    if (players.length >= 2) return <SpectatorFullScreen code={code} />;
+    return (
+      <JoinScreen
+        code={code}
+        hostName={players[0]?.name}
+        joining={submitting}
+        onJoin={async (name) => {
+          setSubmitting(true);
+          const slot = players.some((p) => p.slot === 1) ? 2 : 1;
+          await supabase.from("players").insert({
+            room_id: room!.id,
+            name: (name.trim() || "Partner").slice(0, 30),
+            slot,
+            client_id: clientId,
+          });
+          const { data: ps } = await supabase.from("players").select().eq("room_id", room!.id);
+          setPlayers((ps ?? []) as Player[]);
+          setSubmitting(false);
+        }}
+      />
+    );
+  }
 
   // Waiting screen — only 1 player
   if (players.length < 2) {
