@@ -6,6 +6,7 @@ import { getClientId } from "@/lib/client-id";
 import { getGame, GAME_LIST, type GameMode } from "@/lib/games";
 import { FloatingPetals } from "@/components/FloatingPetals";
 import { ChatPanel } from "@/components/compat/ChatPanel";
+import { useIsDesktop } from "@/hooks/use-mobile";
 import { ProgressHud } from "@/components/ProgressHud";
 import { RewardOverlay } from "@/components/RewardOverlay";
 import { SuspenseReveal } from "@/components/SuspenseReveal";
@@ -41,6 +42,7 @@ function RoomPage() {
   const [reward, setReward] = useState<AwardResult | null>(null);
   const [revealed, setRevealed] = useState(false);
   const [rewardedGame, setRewardedGame] = useState(false);
+  const isDesktop = useIsDesktop();
   const clientId = typeof window !== "undefined" ? getClientId() : "";
 
   useEffect(() => { touchStreak(); }, []);
@@ -306,7 +308,9 @@ function RoomPage() {
         )}
         </section>
 
-        <aside className="hidden min-h-0 lg:block lg:h-[calc(100vh-8rem)] lg:sticky lg:top-6">{chat}</aside>
+        {isDesktop && (
+          <aside className="min-h-0 lg:h-[calc(100vh-8rem)] lg:sticky lg:top-6">{chat}</aside>
+        )}
       </main>
 
       {/* Mobile chat drawer */}
@@ -317,7 +321,7 @@ function RoomPage() {
         <MessageCircle className="h-4 w-4" /> Chat with {partner?.name}
       </button>
       <AnimatePresence>
-        {chatOpen && (
+        {chatOpen && !isDesktop && (
           <>
             <motion.div
               initial={{ opacity: 0 }}
